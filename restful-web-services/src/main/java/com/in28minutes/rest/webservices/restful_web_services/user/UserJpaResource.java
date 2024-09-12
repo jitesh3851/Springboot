@@ -1,6 +1,7 @@
 package com.in28minutes.rest.webservices.restful_web_services.user;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.in28minutes.rest.webservices.restful_web_services.jpa.PostRepository;
 import com.in28minutes.rest.webservices.restful_web_services.jpa.UserRepository;
 
 import jakarta.validation.Valid;
@@ -25,6 +27,9 @@ public class UserJpaResource {
 	
 	@Autowired
 	private UserRepository repository;
+	
+	@Autowired
+	private PostRepository postRepository;
 	
 	@GetMapping(path="/jpa/users")
 	public List<User> retrieveAllUsers(){
@@ -65,6 +70,22 @@ public class UserJpaResource {
 			 throw new UserNotFound("userId:"+userId);
 		 }
 		 return user.get().getPosts();
+	}
+	
+	
+	@PostMapping(path="/jpa/users/{userId}/posts")
+	public ResponseEntity<User> createPostForUser(@PathVariable int userId, @Valid @RequestBody Post post) {
+		Optional<User> user = repository.findById(userId);
+		 if(user.isEmpty()) {
+			 throw new UserNotFound("userId:"+userId);
+		 }
+		 post.setUser(user.get());
+		 Post savedPost = postRepository.save(post);
+		 
+		 URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+				 .path("/{postId}").buildAndExpand(savedPost.getId()).toUri();
+				 ResponseEntity<User> responseEntity = ResponseEntity.created(uri).build();
+				 return responseEntity;
 	}
 	
 
